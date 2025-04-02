@@ -16,13 +16,13 @@ mongoose
   .then(() => console.log("✅ MongoDB Connected"))
   .catch((err) => console.error("❌ MongoDB Connection Error:", err));
 
-// 📌 Define Enrollment Schema (✅ Phone number added)
+// 📌 Define Enrollment Schema (✅ Location updated to include city and state)
 const EnrollmentSchema = new mongoose.Schema({
   first_name: String,
   last_name: String,
   email: String,
   phone: String,  
-  location: String,
+  location: String, // Stores "City, State"
   class_type: String,
   gender: String,
   pre_knowledge: String,
@@ -68,15 +68,17 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-// 📩 Enrollment Form API Endpoint (✅ Updated to include phone number)
+// 📩 Enrollment Form API Endpoint (✅ Location field updated)
 app.post("/register", async (req, res) => {
-  const { first_name, last_name, email, phone, location, class_type, gender, pre_knowledge, course } = req.body;
+  const { first_name, last_name, email, phone, city, state, class_type, gender, pre_knowledge, course } = req.body;
 
-  if (!first_name || !last_name || !email || !phone || !location || !class_type || !gender || !course) {
+  if (!first_name || !last_name || !email || !phone || !city || !state || !class_type || !gender || !course) {
     return res.status(400).json({ error: "All fields are required" });
   }
 
   try {
+    const location = `${city}, ${state}`; // ✅ Store location as "City, State"
+
     // 💾 Save to MongoDB
     const newEnrollment = new Enrollment({ first_name, last_name, email, phone, location, class_type, gender, pre_knowledge, course });
     await newEnrollment.save();
