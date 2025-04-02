@@ -21,14 +21,16 @@ const EnrollmentSchema = new mongoose.Schema({
   first_name: String,
   last_name: String,
   email: String,
-  phone: String,  
-  location: String, // Stores "City, State"
+  phone: String,
+  city: String, 
+  state: String, 
   class_type: String,
   gender: String,
   pre_knowledge: String,
   course: String,
   date: { type: Date, default: Date.now },
 });
+
 
 const Enrollment = mongoose.model("Enrollment", EnrollmentSchema);
 
@@ -68,7 +70,6 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-// 📩 Enrollment Form API Endpoint (✅ Location field updated)
 app.post("/register", async (req, res) => {
   const { first_name, last_name, email, phone, city, state, class_type, gender, pre_knowledge, course } = req.body;
 
@@ -77,23 +78,34 @@ app.post("/register", async (req, res) => {
   }
 
   try {
-    const location = `${city}, ${state}`; // ✅ Store location as "City, State"
+    // 💾 Save to MongoDB with separate city and state
+    const newEnrollment = new Enrollment({
+      first_name,
+      last_name,
+      email,
+      phone,
+      city, // 👈 Store city separately
+      state, // 👈 Store state separately
+      class_type,
+      gender,
+      pre_knowledge,
+      course,
+    });
 
-    // 💾 Save to MongoDB
-    const newEnrollment = new Enrollment({ first_name, last_name, email, phone, location, class_type, gender, pre_knowledge, course });
     await newEnrollment.save();
 
     // 📧 Send Confirmation Email
     const mailOptions = {
       from: `TechAlpha Hub <${process.env.EMAIL_USER}>`,
-      to: email, 
+      to: email,
       subject: "TechAlpha Hub Enrollment Confirmation",
       html: `<p>Dear ${first_name},</p>
              <p>Thank you for registering for <strong>${course}</strong> at TechAlpha Academy!</p>
              <p>We have received your details:</p>
              <ul>
                <li><strong>Phone:</strong> ${phone}</li>
-               <li><strong>Location:</strong> ${location}</li>
+               <li><strong>City:</strong> ${city}</li>
+               <li><strong>State:</strong> ${state}</li>
              </ul>
              <p>To proceed, please contact our admin on WhatsApp using the link below:</p>
              <p><a href="https://wa.me/2347066155981">Chat with TechAlpha Academy Admin</a></p>
