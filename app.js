@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const nodemailer = require("nodemailer");
-
+const axios = require("axios");
 dotenv.config();
 
 const app = express();
@@ -161,6 +161,66 @@ app.post("/contact", async (req, res) => {
   } catch (error) {
     console.error("❌ Error:", error);
     res.status(500).json({ error: "Server error" });
+  }
+});
+
+// 📌 Flutterwave Payment API Endpoint
+app.post("/payment", async (req, res) => {
+  const { amount, email, phone } = req.body;
+
+  if (!amount || !email || !phone) {
+    return res.status(400).json({ error: "Amount, email, and phone are required" });
+  }
+
+  const payload = {
+    tx_ref: `tx-${Date.now()}`, // unique transaction reference
+    amount,
+    email,
+    phone_number: phone,
+    currency: "NGN",
+    redirect_url: "https://flutterbackendapp.onrender.com/payment/verify", // URL to verify payment
+  };
+
+  try {
+    const response = await axios.post(
+      "https://api.flutterwave.com/v3/charges?type=payment",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer FLWSECK-cfad455c42a018dc3be2a3e691d09045-195f6da7584vt-X`,
+        },
+      }
+    );
+
+    res.json(response.data);
+  } catch (error) {
+    console.error("❌ Payment Error:", error);
+    res.status(500).json({ error: "Payment initiation failed" });
+  }
+});
+
+// 📌 Payment verification endpoint (Flutterwave will redirect to this URL after payment)
+app.post("/payment/verify", async (req, res) => {
+  const { tx_ref } = req.body;
+
+  try {
+    const response = await axios.get(
+      `https://api.flutterwave.com/v3/charges/${tx_ref}/verify`,
+      {
+        headers: {
+          Authorization: `Bearer FLWSECK-cfad455c42a018dc3be2a3e691d09045-195f6da7584vt-X`,
+        },
+      }
+    );
+
+    if (response.data.status === "success") {
+      res.json({ message: "Payment verified successfully" });
+    } else {
+      res.status(400).json({ error: "Payment verification failed" });
+    }
+  } catch (error) {
+    console.error("❌ Payment Verification Error:", error);
+    res.status(500).json({ error: "Payment verification failed" });
   }
 });
 
